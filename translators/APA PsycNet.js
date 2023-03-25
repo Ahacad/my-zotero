@@ -3,13 +3,13 @@
 	"translatorType": 4,
 	"label": "APA PsycNet",
 	"creator": "Philipp Zumstein",
-	"target": "^https?://psycnet\\.apa\\.org/",
+	"target": "^https?://(psycnet|doi)\\.apa\\.org/",
 	"minVersion": "3.0",
 	"maxVersion": null,
 	"priority": 100,
 	"inRepository": true,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2021-08-31 03:30:00"
+	"lastUpdated": "2022-11-09 21:15:00"
 }
 
 /*
@@ -74,7 +74,7 @@ function getSearchResults(doc, checkOnly) {
 	var found = false;
 	var rows = doc.querySelectorAll('a.article-title');
 	for (var i = 0; i < rows.length; i++) {
-		var href = attr(rows[i].parentNode, '#buy, a.fullTextHTMLLink, a.fullTextLink', 'href');
+		var href = rows[i].href;
 		var title = ZU.trimInternal(rows[i].textContent);
 		if (!href || !title) continue;
 		if (checkOnly) return true;
@@ -85,33 +85,30 @@ function getSearchResults(doc, checkOnly) {
 }
 
 
-function doWeb(doc, url) {
+async function doWeb(doc, url) {
 	if (detectWeb(doc, url) == "multiple") {
-		Zotero.selectItems(getSearchResults(doc, false), function (items) {
-			if (!items) {
-				return;
-			}
-			var articles = [];
-			for (var i in items) {
-				articles.push(i);
-			}
-			ZU.processDocuments(articles, scrape);
-		});
+		let items = await Zotero.selectItems(getSearchResults(doc, false));
+		if (!items) {
+			return;
+		}
+		await Promise.all(
+			Object.keys(items).map(async url => scrape(await requestDocument(url), url))
+		);
 	}
 	else {
-		scrape(doc, url);
+		await scrape(doc, url);
 	}
 }
 
 
-function scrape(doc, url) {
-	var uid = getIds(doc, url.replace(/[?#].*$/, ''));
+async function scrape(doc, url) {
+	var uid = await getIds(doc, url.replace(/#.*$/, ''));
 	if (!uid) {
 		throw new Error("ID not found");
 	}
 	
 	var productCode;
-	var db = doc.getElementById('database');
+	var db = doc.getElementById('database') || doc.querySelector('doi-landing .meta span');
 	if (db) {
 		db = db.parentNode.textContent.toLowerCase();
 		if (db.includes('psycarticles')) {
@@ -144,34 +141,27 @@ function scrape(doc, url) {
 		Referer: url
 	};
 
-	// 1. We have to set the uid, product code and format with a post request
-	ZU.doPost('/api/request/record.exportRISFile', postData, function (apiReturnMessage) {
-		var apiReturnData;
-		try {
-			apiReturnData = JSON.parse(apiReturnMessage);
+	let apiReturnData = await requestJSON('/api/request/record.exportRISFile', {
+		method: 'POST',
+		headers: headers,
+		body: postData,
+	});
+
+	if (apiReturnData && apiReturnData.isRisExportCreated) {
+		// 2. Download the requested data (after step 1)
+		let data = await requestText('/ris/download');
+		if (data.includes('Content: application/x-research-info-systems')) {
+			processRIS(data, doc);
 		}
-		catch (e) {
-			Z.debug('POST request did not result in valid JSON');
-			Z.debug(apiReturnMessage);
+		else {
+			// sometimes (e.g. during testing) the data is not loaded
+			// but a meta redirect to a captcha page mentioning
+			Z.debug("The APA anomaly detection think we are doing "
+				+ "something unusual (sigh). Please reload any APA page e.g. "
+				+ "http://psycnet.apa.org/ in your browser and try again.");
+			Z.debug(data);
 		}
-		
-		if (apiReturnData && apiReturnData.isRisExportCreated) {
-			// 2. Download the requested data (after step 1)
-			ZU.doGet('/ris/download', function (data) {
-				if (data.includes('Content: application/x-research-info-systems')) {
-					processRIS(data, doc);
-				}
-				else {
-					// sometimes (e.g. during testing) the data is not loaded
-					// but a meta redirect to a captcha page mentioning
-					Z.debug("The APA anomaly detection think we are doing "
-						+ "something unusual (sigh). Please reload any APA page e.g. "
-						+ "http://psycnet.apa.org/ in your browser and try again.");
-					Z.debug(data);
-				}
-			});
-		}
-	}, headers);
+	}
 }
 
 
@@ -208,7 +198,8 @@ function processRIS(text, doc) {
 
 
 // try to figure out ids that we can use for fetching RIS
-function getIds(doc, url) {
+async function getIds(doc, url) {
+	Z.debug('Finding IDs in ' + url)
 	// try to extract uid from the table
 	var uid = text(doc, '#uid + dd') || text(doc, '#bookUID');
 	if (uid) {
@@ -218,6 +209,14 @@ function getIds(doc, url) {
 	// try to extract uid from the url
 	if (url.includes('/record/')) {
 		let m = url.match(/\/record\/([\d-]*)/);
+		if (m && m[1]) {
+			return m[1];
+		}
+	}
+
+	// DOI landing pages include a link to the /record/ page
+	if (url.includes('/doiLanding') && doc.querySelector('.title > a')) {
+		let m = attr(doc, '.title > a', 'href').match(/\/record\/([\d-]*)/);
 		if (m && m[1]) {
 			return m[1];
 		}
@@ -252,12 +251,47 @@ function getIds(doc, url) {
 		}
 	}
 	
-	/** last option: check for a purchase link
+	/** check for a purchase link
 	 */
 	var purchaseLink = attr(doc, 'a.purchase[href*="/buy/"]', 'href');
 	if (purchaseLink) {
 		let m = purchaseLink.match(/\/buy\/([\d-]*)/);
 		return m[1];
+	}
+
+	// Worst-case fallback if we're on a search result page: make some requests
+	if (url.includes('/search/display?')) {
+		let searchParams = new URL(url).searchParams;
+		let id = searchParams.get('id');
+		if (id) {
+			let searchObj = await requestJSON('/api/request/recentSearch.get', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					api: 'recentSearch.get',
+					params: {
+						id
+					}
+				})
+			});
+			let recordId = parseInt(searchParams.get('recordId'));
+			let recordWithCount = await requestJSON('/api/request/search.recordWithCount', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					api: 'search.recordWithCount',
+					params: {
+						...searchObj,
+						responseParameters: {
+							...searchObj.responseParameters,
+							start: recordId - 1,
+							rows: 1
+						}
+					}
+				})
+			});
+			return recordWithCount.results.result.doc[0].UID;
+		}
 	}
 	
 	return false;

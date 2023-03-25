@@ -8,7 +8,7 @@
 	"maxVersion": null,
 	"priority": 100,
 	"inRepository": true,
-	"lastUpdated": "2021-06-07 22:15:00"
+	"lastUpdated": "2022-12-12 19:35:00"
 }
 
 /*
@@ -184,7 +184,6 @@ function zoteroItemToQuickStatements(item) {
 	if (typeMapping[itemType]) {
 		addStatement('P31', typeMapping[itemType]);
 	}
-	addStatement('Len', '"' + item.title + '"');
 
 	var description = itemType.replace(/([A-Z])/, function (match, firstLetter) {
 		return ' ' + firstLetter.toLowerCase();
@@ -259,11 +258,13 @@ function zoteroItemToQuickStatements(item) {
 
 	if (item.language && (item.language.toLowerCase() in languageMapping)) {
 		let lang = item.language.toLowerCase();
+		addStatement('L' + lang, '"' + item.title + '"');
 		addStatement('P1476', lang + ':"' + item.title + '"');
 		addStatement('P407', languageMapping[lang]);
 	}
 	else {
-		// otherwise use "und" for undetermined language
+		// otherwise use "und" for undetermined language and add the label in english by default
+		addStatement('Len', '"' + item.title + '"');
 		addStatement('P1476', 'und:"' + item.title + '"');
 	}
 

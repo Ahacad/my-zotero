@@ -16,7 +16,7 @@
 	"displayOptions": {
 		"exportNotes": true
 	},
-	"lastUpdated": "2021-07-23 04:20:00"
+	"lastUpdated": "2022-09-30 11:05:00"
 }
 
 var n = {
@@ -1071,6 +1071,10 @@ function doExport() {
 	var item;
 	var items = {};
 	while (item = Zotero.nextItem()) {
+		// Skip standalone notes
+		if (item.itemType == 'note') {
+			continue;
+		}
 		items[item.itemID] = item;
 	}
 	var autoTags = {};

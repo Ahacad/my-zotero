@@ -9,7 +9,7 @@
 	"priority": 100,
 	"inRepository": true,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2021-06-28 19:25:00"
+	"lastUpdated": "2022-11-14 17:05:00"
 }
 
 /*
@@ -49,12 +49,19 @@ var ext2mime = {
 	docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 	ppt: 'application/vnd.ms-powerpoint',
 	pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+	xls: 'application/vnd.ms-excel',
+	xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 	html: 'text/html',
 	png: 'image/png',
 	gif: 'image/gif',
 	jpg: 'image/jpeg',
 	jpeg: 'image/jpeg',
-	mp4: 'video/mp4'
+	mp4: 'video/mp4',
+	tsv: 'text/tab-separated-values',
+	csv: 'text/csv',
+	py: 'text/x-python',
+	tex: 'text/x-tex',
+	bbl: 'text/x-tex'
 };
 
 function detectWeb(doc, url) {

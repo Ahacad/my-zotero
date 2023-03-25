@@ -1,15 +1,15 @@
 {
 	"translatorID": "076bd26a-1517-469d-85e9-31316a6f6cb0",
+	"translatorType": 4,
 	"label": "Wikisource",
 	"creator": "Philipp Zumstein",
 	"target": "^https?://en\\.wikisource\\.org/w",
 	"minVersion": "2.1.9",
-	"maxVersion": "",
+	"maxVersion": null,
 	"priority": 100,
 	"inRepository": true,
-	"translatorType": 4,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2016-04-15 06:46:02"
+	"lastUpdated": "2022-12-08 16:35:00"
 }
 
 /*
@@ -37,6 +37,11 @@
 
 
 function detectWeb(doc, url) {
+	// Diff interface is not supported
+	if (new URLSearchParams(doc.location.search).get('diff')) {
+		return false;
+	}
+
 	if (doc.getElementById("header_title_text")) {
 		var titleLink = ZU.xpath(doc, '//span[@id="header_title_text"]/a');
 		if (titleLink.length && (titleLink[0].textContent.match(/Encyclop(æ|ae|e)dia|Dictionary/) )) {
@@ -164,7 +169,8 @@ function scrapeSource(doc, item) {
 		item.creators.push(ZU.cleanAuthor(indexedFields.Illustrator, "contributor"));
 	}
 	item.complete();
-}/** BEGIN TEST CASES **/
+}
+/** BEGIN TEST CASES **/
 var testCases = [
 	{
 		"type": "web",
@@ -389,5 +395,5 @@ var testCases = [
 			}
 		]
 	}
-];
+]
 /** END TEST CASES **/

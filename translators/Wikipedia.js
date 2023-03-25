@@ -9,7 +9,7 @@
 	"priority": 100,
 	"inRepository": true,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2022-01-14 12:05:00"
+	"lastUpdated": "2023-01-17 16:00:00"
 }
 
 /**
@@ -39,14 +39,25 @@ function detectWeb(doc, _url) {
 		return 'multiple';
 	}
 	
-	// specifically exclude the editor interface, since it doesn't give us much
+	// exclude the non-viewing interface, since it doesn't give us much
 	// to work with and users are unlikely to want to add it as an
 	// encyclopediaArticle.
-	// e.g., this excludes https://en.wikipedia.org/w/index.php?title=Main_Page&action=edit
-	if (doc.body.classList.contains('action-edit')) {
+	// e.g., this excludes https://en.wikipedia.org/w/index.php?title=Main_Page&action=edit,
+	// https://en.wikipedia.org/w/index.php?title=Main_Page&action=history, etc.
+	if (!doc.body.classList.contains('action-view')) {
 		return false;
 	}
 	
+	// Diff interface is not supported
+	if (new URLSearchParams(doc.location.search).get('diff')) {
+		return false;
+	}
+
+	// excludes special pages, such as https://en.wikipedia.org/wiki/Special:RecentChanges
+	if (doc.body.classList.contains('ns--1')) {
+		return false;
+	}
+
 	// on desktop, the article title is in #firstHeading.
 	// on mobile, it's #section_0.
 	if (doc.getElementById('firstHeading') || doc.getElementById('section_0')) {
@@ -216,6 +227,7 @@ function filterTags(root, allowSelector) {
 		}
 	}
 }
+
 
 /** BEGIN TEST CASES **/
 var testCases = [

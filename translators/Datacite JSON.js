@@ -8,7 +8,7 @@
 	"maxVersion": null,
 	"priority": 100,
 	"inRepository": true,
-	"lastUpdated": "2021-06-08 14:40:00"
+	"lastUpdated": "2022-08-25 10:35:00"
 }
 
 /*
@@ -131,7 +131,7 @@ function doImport() {
 						"creatorType": "author"
 					});
 				} else {
-					item.creators.push(ZU.cleanAuthor(creator.name, "author"));
+					item.creators.push(ZU.cleanAuthor(creator.name, "author", true));
 				}
 			} else {
 				item.creators.push({"lastName": creator.name, "creatorType": "author", "fieldMode": true});

@@ -9,7 +9,7 @@
 	"priority": 100,
 	"inRepository": true,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2021-06-18 21:45:00"
+	"lastUpdated": "2022-08-12 08:30:00"
 }
 
 /*
@@ -69,7 +69,9 @@ function doWeb(doc, url) {
 		var pmcid = getPMCID(url);
 		var pdf = getPDF(doc, '//td[@class="format-menu"]//a[contains(@href,".pdf")]'
 				+ '|//div[@class="format-menu"]//a[contains(@href,".pdf")]'
-				+ '|//aside[@id="jr-alt-p"]/div/a[contains(@href,".pdf")]');
+				+ '|//aside[@id="jr-alt-p"]/div/a[contains(@href,".pdf")]'
+				+ '|//li[contains(@class, "pdf-link")]/a');
+		// Z.debug(pdf);
 		// if we're looking at a pdf, just use the current url
 		if (!pdf && url.search(/\/pdf\/.+.pdf/) != -1) {
 			pdf = url;

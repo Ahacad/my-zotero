@@ -9,7 +9,7 @@
 	"priority": 100,
 	"inRepository": true,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2021-11-18 23:15:00"
+	"lastUpdated": "2022-05-31 13:55:00"
 }
 
 /*
@@ -75,7 +75,7 @@ function detectWeb(doc, url) {
 }
 
 function getFormat(doc) {
-	return ZU.xpathText(doc, '//span[@class="pub_title" and contains(., "Format")]/following-sibling::span[@class="pub_desc"]');
+	return text(doc, '.type');
 }
 
 function getSearchResults(doc, checkOnly) {
@@ -121,7 +121,7 @@ function scrape(doc, url) {
 		text = text.replace(/^(AU\s+-.*), \d\d\d\d-(\d\d\d\d)?$/m, "$1");
 		// music scores should be treated as book
 		text = text.replace('TY  - MUSIC', 'TY  - BOOK');
-		if (getFormat(doc).includes('Book')) {
+		if (getFormat(doc) && getFormat(doc).includes('Book')) {
 			// fix for an odd RIS issue in one of the tests - a book is tagged
 			// as a presentation
 			text = text.replace('TY  - SLIDE', 'TY  - BOOK');

@@ -1,15 +1,15 @@
 {
 	"translatorID": "9e306d5d-193f-44ae-9dd6-ace63bf47689",
+	"translatorType": 4,
 	"label": "IngentaConnect",
 	"creator": "Michael Berkowitz",
 	"target": "^https?://(www\\.)?ingentaconnect\\.com",
 	"minVersion": "3.0",
-	"maxVersion": "",
+	"maxVersion": null,
 	"priority": 100,
 	"inRepository": true,
-	"translatorType": 4,
 	"browserSupport": "gcsibv",
-	"lastUpdated": "2020-02-20 21:11:47"
+	"lastUpdated": "2022-07-12 05:45:00"
 }
 
 /*
@@ -93,19 +93,18 @@ function getRisUrl(doc) {
 }
 
 function scrape(newDoc, url) {
-	var abs, pdf;
+	var abs;
 	var risurl = getRisUrl(newDoc);
 	if (ZU.xpathText(newDoc, '//div[@id="abstract"]')) {
 		abs = Zotero.Utilities.trimInternal(ZU.xpathText(newDoc, '//div[@id="abstract"]')).substr(10);
 	}
-	var articleID = ZU.xpathText(newDoc, '/html/head/meta[@name="IC.identifier"]/@content');
-	if (articleID) {
-		pdf = '/search/download?pub=infobike://' + articleID + '&mimetype=application/pdf';
-	}
-	else {
-		pdf = url.replace(/[?&#].*/, '')
+	var pdf = attr(newDoc, 'a.fulltext.pdf', 'data-popup');
+	if (!pdf) {
+		Z.debug("PDF URL not found - constructing from main URL");
+		pdf = url
+			.replace(/[?&#;].*/, '')
 			.replace('/content/', '/search/download?pub=infobike://')
-			+ '&mimetype=application/pdf';
+			+ '&mimetype=application/pdf&host=https://www.ingentaconnect.com';
 	}
 	if (ZU.xpathText(newDoc, '//div[@id="info"]/p[1]/a')) {
 		var keywords = ZU.xpathText(newDoc, '//div[@id="info"]/p[1]/a');
